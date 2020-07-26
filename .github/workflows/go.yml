@@ -1,0 +1,39 @@
+---
+# SeeAlso: https://github.com/mvdan/github-actions-golang
+name: CI
+on:
+  pull_request: ~
+  push:
+    branches:
+      # These are the branches that we want CI to run on direct pushes.
+      # All other changes should go through PRs.
+      - master
+    paths:
+      - '**.go'
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        go-version: [1.12.x, 1.13.x, 1.14.x]
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Checkout code
+        uses: actions/checkout@v1
+      - name: Test
+        run: go test ./... -v -race -covermode=atomic -coverprofile=coverage.txt
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}  # required
+          file: ./coverage.txt
+          flags: go
+          name: Go ${{matrix.go-version}} / ${{matrix.platform}}
+      - uses: actions/labeler@v2
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
